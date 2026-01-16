@@ -105,3 +105,7 @@ All logs are automatically saved with date prefixes in the `./log/` directory:
 ## 📂 Security
 
 The files `config.ini` and `token.json` contain sensitive credentials and **must never** be uploaded to GitHub (they are already included in the `.gitignore`).
+
+## How to contribute
+
+⚠️ This is a personal repository designed to work specifically for my setup. If you have contributions that would improve functionality for me AND could be useful for your own setup, I'm open to contributions. However, I cannot guarantee that all changes will be merged into this codebase.
