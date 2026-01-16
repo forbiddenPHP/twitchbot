@@ -46,19 +46,17 @@ twitch_instance = None
 
 # --- HELPER FUNCTIONS ---
 
-# TO-DO: this should be used for all INCOMING messages!
-def clean_all_unwanted_parts(data: bytes) -> bytes:
-    # 1. ANSI weg
+def clean_all_unwanted_parts(text: str) -> str:
+    # 1. ANSI weg (als String, nicht Bytes!)
     ansi_pattern = re.compile(
-        br'(?:\x1B[@-Z\\-_]|[\x80-\x9A\x9C-\x9F]|(?:\x1B\[|\x9B)[0-?]*[ -/]*[@-~])'
+        r'(?:\x1B[@-Z\\-_]|[\x80-\x9A\x9C-\x9F]|(?:\x1B\[|\x9B)[0-?]*[ -/]*[@-~])'
     )
-    data = ansi_pattern.sub(b'', data)
-    
+    text = ansi_pattern.sub('', text)
+
     # 2. Alle Whitespaces (Tabs, \n, \r) zu Leerzeichen
-    # \s findet im Byte-Modus [ \t\n\r\f\v]
-    data = re.sub(br'\s+', b' ', data)
-    
-    return data.strip()
+    text = re.sub(r'\s+', ' ', text)
+
+    return text.strip()
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -180,7 +178,7 @@ async def on_ready(ready_event: EventData):
 
 async def on_message(msg: ChatMessage):
     # Clean incoming message text first
-    cleaned_text = clean_all_unwanted_parts(msg.text.encode('utf-8')).decode('utf-8')
+    cleaned_text = clean_all_unwanted_parts(msg.text)
 
     print(f"{Color.ORANGE}{msg.user.name}{Color.RESET}: {Color.WHITE}{cleaned_text}{Color.RESET}")
     ts = int(msg.sent_timestamp / 1000) if msg.sent_timestamp else 0
