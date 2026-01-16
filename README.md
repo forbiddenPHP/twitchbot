@@ -52,7 +52,7 @@ pip install -r requirements.txt
 ```
 
 
-2. Create a `faq.txt` file with your desired FAQ response text.
+2. Edit `faq.txt` with your desired FAQ response text.
 3. Run the bot:
 ```bash
 python twitchbot.py
@@ -62,21 +62,45 @@ python twitchbot.py
 
 4. **Important on first run:** A browser window will open. Log in as the **Bot Account** (`forbiddenPHPbot`) and click "Authorize". The `token.json` will be created automatically, and you won't need to log in again.
 
-## 📜 Commands
+## 📜 Supported Commands
+
+### Syntax Overview
 
 | Command | User | Description |
 | --- | --- | --- |
 | `!today` | Everyone | Shows the current stream topic |
 | `!setToday <text>` | Owner | Updates the stream topic |
+| `!title <text>` | Owner | Updates the stream title |
 | `!faq` | Everyone | Posts the content of faq.txt |
 | `!suggest <text>` | Everyone | Saves suggestions to suggestions.txt |
 | `!poll start / Q / A / B` | Owner | Starts a new poll |
 | `!poll status` | Owner | Shows current poll standings |
 | `!poll stop` | Owner | Ends the poll and logs the results |
 | `!a, !b, !c, !d` | Everyone | Vote in an active poll |
-| `!chat <all/followers/subs>` | Mod/Owner | Changes chat restriction mode |
-| `!vip / !unvip <user>` | Mod/Owner | Manage VIP status |
-| `!ban / !unban <user>` | Mod/Owner | Ban or unban users |
+
+### Command Examples
+
+**Stream Management:**
+- `!today` - Displays the current topic
+- `!setToday We're building a new feature today!` - Sets stream topic
+- `!title Building an awesome Twitch bot` - Updates stream title
+
+**Interactive Features:**
+- `!faq` - Shows FAQ text
+- `!suggest Add dark mode please` - Saves user suggestion
+
+**Polls:**
+- `!poll start / What should we build? / Feature A / Feature B / Feature C` - Start a poll (2-4 options)
+- `!poll status` - Check current vote counts
+- `!poll stop` - End poll and save results
+- `!a` or `!b` or `!c` or `!d` - Cast your vote
+
+### File Logging
+
+All logs are automatically saved with date prefixes in the `./log/` directory:
+- `YYYY-MM-DD-messages.csv` - All chat messages
+- `YYYY-MM-DD-polls.txt` - Poll results
+- `YYYY-MM-DD-new-subs.txt` - New subscriber notifications
 
 ## 📂 Security
 
