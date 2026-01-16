@@ -179,9 +179,12 @@ async def on_ready(ready_event: EventData):
     await send_and_log(TARGET_CHANNEL, "Bot ready and listening! :)")
 
 async def on_message(msg: ChatMessage):
-    print(f"{Color.ORANGE}{msg.user.name}{Color.RESET}: {Color.WHITE}{msg.text}{Color.RESET}")
+    # Clean incoming message text first
+    cleaned_text = clean_all_unwanted_parts(msg.text.encode('utf-8')).decode('utf-8')
+
+    print(f"{Color.ORANGE}{msg.user.name}{Color.RESET}: {Color.WHITE}{cleaned_text}{Color.RESET}")
     ts = int(msg.sent_timestamp / 1000) if msg.sent_timestamp else 0
-    csv_line = f'{ts},{msg.user.name},{msg.user.color or "#FFFFFF"},"{msg.text}"'
+    csv_line = f'{ts},{msg.user.name},{msg.user.color or "#FFFFFF"},"{cleaned_text}"'
     log_write("messages.csv", csv_line, is_csv=True)
 
 async def on_sub(sub: ChatSub):
