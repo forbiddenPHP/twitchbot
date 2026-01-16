@@ -16,21 +16,12 @@ A custom-built Twitch chatbot for logging, polls, and moderation. Built with the
 
 1. Visit the [Twitch Dev Console](https://dev.twitch.tv/console).
 2. Click **Register Your Application**.
-3. **Name**: `forbiddenPHPbot` (or your preferred name).
+3. **Name**: Choose any name for your application (e.g., `MyTwitchBot`).
 4. **OAuth Redirect URLs**: MUST be set to `http://localhost:17563`.
 5. **Category**: "Chat Bot".
 6. Copy your **Client ID** and **Client Secret**.
 
-### 2. Prepare Twitch Permissions
-
-Log into Twitch with your **Main Streamer Account** and grant your bot moderator privileges by typing this in your chat:
-
-```text
-/mod forbiddenPHPbot
-
-```
-
-### 3. Configure the Bot
+### 2. Configure the Bot
 
 Create a `config.ini` file in the root folder:
 
@@ -38,12 +29,12 @@ Create a `config.ini` file in the root folder:
 [TWITCH]
 app_id = YOUR_CLIENT_ID
 app_secret = YOUR_CLIENT_SECRET
-target_channel = YOUR_STREAM_CHANNEL
-owner_name = YOUR_MAIN_ACCOUNT_NAME
+target_channel = YOUR_TWITCH_CHANNEL
+owner_name = YOUR_TWITCH_ACCOUNT_NAME
 
 ```
 
-### 4. Installation & Launch
+### 3. Installation & Launch
 
 1. Install dependencies:
 ```bash
@@ -60,7 +51,7 @@ python twitchbot.py
 ```
 
 
-4. **Important on first run:** A browser window will open. Log in as the **Bot Account** (`forbiddenPHPbot`) and click "Authorize". The `token.json` will be created automatically, and you won't need to log in again.
+4. **Important on first run:** A browser window will open. Log in with your **Twitch Account** and click "Authorize". The `token.json` will be created automatically, and you won't need to log in again.
 
 ## 📜 Supported Commands
 
