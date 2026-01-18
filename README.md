@@ -84,14 +84,40 @@ python twitchbot.py
 - `!poll start / What should we build? / Feature A / Feature B / Feature C` - Start a poll (2-4 options)
 - `!poll status` - Check current vote counts
 - `!poll stop` - End poll and save results
-- `!a` or `!b` or `!c` or `!d` - Cast your vote
+- `!a` or `!b` or `!c` or `!d` - Cast your vote (you can change your vote anytime)
+
+### Poll System Details
+
+**Live Poll Files (Streaming Software Integration):**
+
+While a poll is active, the following files are continuously updated in `./log/`:
+- `current-poll-question.txt` - The poll question
+- `current-poll-a.txt`, `current-poll-b.txt`, `current-poll-c.txt`, `current-poll-d.txt` - Option texts (empty if not used)
+- `current-poll-a-amount.txt`, `current-poll-b-amount.txt`, etc. - Current vote counts (empty if option not used)
+- `current-poll-votes.json` - Vote tracking metadata
+
+These files remain persistent after a poll ends (showing last results) and are only overwritten when a new poll starts.
+
+**Voting Rules:**
+- Each user can vote only once
+- Users can change their vote at any time (but cannot vote for multiple options)
+- Vote changes are tracked in real-time
+
+**Poll Archiving:**
+
+When a poll ends, all files are archived with timestamps:
+- `YYYY-MM-DD-HH-MM-poll-question.txt`
+- `YYYY-MM-DD-HH-MM-poll-a.txt`, etc.
+
+This allows you to review historical poll results.
 
 ### File Logging
 
 All logs are automatically saved with date prefixes in the `./log/` directory:
 - `YYYY-MM-DD-messages.csv` - All chat messages
-- `YYYY-MM-DD-polls.txt` - Poll results
+- `YYYY-MM-DD-polls.txt` - Poll results summary
 - `YYYY-MM-DD-new-subs.txt` - New subscriber notifications
+- `YYYY-MM-DD-HH-MM-poll-*.txt` - Archived poll data (timestamped)
 
 ## 📂 Security
 

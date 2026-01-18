@@ -1,1 +1,2 @@
 twitchAPI>=4.0.0
+aioconsole>=0.7.0
