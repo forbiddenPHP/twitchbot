@@ -238,6 +238,12 @@ async def cmd_faq(cmd: ChatCommand):
             content = f.read().strip()
             if content: await send_and_log(cmd.room, content)
 
+async def cmd_commands(cmd: ChatCommand):
+    if os.path.exists('commands.txt'):
+        with open('commands.txt', 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+            if content: await send_and_log(cmd.room, content)
+
 async def cmd_suggest(cmd: ChatCommand):
     if not cmd.parameter: return
     log_write("suggestions.txt", f"{cmd.user.name}: {cmd.parameter}")
@@ -309,6 +315,8 @@ async def handle_bot_input(user_input: str):
             await cmd_today(FakeCmd())
         elif cmd_name == 'faq':
             await cmd_faq(FakeCmd())
+        elif cmd_name == 'commands':
+            await cmd_commands(FakeCmd())
 
 async def input_loop():
     """Async Input-Loop für Bot-Eingaben"""
@@ -403,6 +411,7 @@ async def main():
         chat_instance.register_command('today', cmd_today)
         chat_instance.register_command('setToday', cmd_set_today)
         chat_instance.register_command('faq', cmd_faq)
+        chat_instance.register_command('commands', cmd_commands)
         chat_instance.register_command('suggest', cmd_suggest)
         chat_instance.register_command('poll', cmd_poll)
         chat_instance.register_command('title', cmd_title)

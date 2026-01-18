@@ -2,6 +2,10 @@
 
 A custom-built Twitch chatbot for logging, polls, and moderation. Built with the modern `twitchAPI` library, featuring automatic token handling.
 
+## How to contribute
+
+⚠️ This is a personal repository designed to work specifically for my setup. If you have contributions that would improve functionality for me AND could be useful for your own setup, I'm open to contributions. However, I cannot guarantee that all changes will be merged into this codebase.
+
 ## 🛠 Features
 
 * **Full Logging**: All chat messages are stored in `./log/YYYY-MM-DD-messages.csv`.
@@ -59,6 +63,7 @@ python twitchbot.py
 
 | Command | User | Description |
 | --- | --- | --- |
+| `!commands` | Everyone | Shows link to command documentation |
 | `!today` | Everyone | Shows the current stream topic |
 | `!setToday <text>` | Owner | Updates the stream topic |
 | `!title <text>` | Owner | Updates the stream title |
@@ -77,6 +82,7 @@ python twitchbot.py
 - `!title Building an awesome Twitch bot` - Updates stream title
 
 **Interactive Features:**
+- `!commands` - Shows link to command list
 - `!faq` - Shows FAQ text
 - `!suggest Add dark mode please` - Saves user suggestion
 
@@ -123,6 +129,78 @@ All logs are automatically saved with date prefixes in the `./log/` directory:
 
 The files `config.ini` and `token.json` contain sensitive credentials and **must never** be uploaded to GitHub (they are already included in the `.gitignore`).
 
-## How to contribute
+## 🚧 TODOs
 
-⚠️ This is a personal repository designed to work specifically for my setup. If you have contributions that would improve functionality for me AND could be useful for your own setup, I'm open to contributions. However, I cannot guarantee that all changes will be merged into this codebase.
+The following commands are planned but not yet implemented:
+
+### Moderation Commands
+
+| Command | User | Description |
+| --- | --- | --- |
+| `!vip <username>` | Owner | Grants VIP status to a user |
+| `!unvip <username>` | Owner | Removes VIP status from a user |
+| `!mod <username>` | Owner | Grants moderator status to a user |
+| `!unmod <username>` | Owner | Removes moderator status from a user |
+| `!ban <username>` | Owner + Mods | Bans a user from the chat |
+| `!unban <username>` | Owner + Mods | Unbans a user |
+| `!chatmode` | Owner | Shows current chat mode (default: followers) |
+| `!chatmode <followers\|subs\|all>` | Owner | Sets chat restriction mode |
+
+### Shoutout System
+
+| Command | User | Description |
+| --- | --- | --- |
+| `!so <username>` | Owner + Mods | Gives a shoutout to another streamer |
+| `!shoutout <username>` | Owner + Mods | Alias for !so |
+
+**Shoutout Files (Streaming Software Integration):**
+
+Shoutouts are logged to `./log/YYYY-MM-DD-shoutouts.csv` with the following format:
+```csv
+timestamp,username,shown
+1737208980,somestreamer,0
+1737213900,anotherstreamer,0
+```
+
+The `shown` field starts at `0` and can be set to `1` by streaming software to track which shoutouts have been displayed on stream.
+
+Additional files for Streaming Software integration:
+- `current-shoutout.txt` - Username of the most recent shoutout
+- `current-shoutout-count.txt` - Total number of shoutouts today
+
+### Emote Tracking System
+
+Tracks custom emote usage anywhere in messages (not just at the beginning). These work alongside Twitch custom emotes to provide analytics and interaction tracking.
+
+**Tracked Emotes:**
+- `!lurk` - User is lurking
+- `!hype` - Hype moments
+- `!coding` - Coding activity
+- `!clip` - Clip-worthy moment marker
+
+**Behavior:**
+- Emotes are detected anywhere in any message (beginning, middle, end)
+- Multiple emotes in one message are all counted
+- No bot responses (silent tracking only)
+- Works in parallel with regular commands (e.g., `!suggest I love !hype moments` counts the !hype AND saves the suggestion)
+
+**Files (Streaming Software Integration):**
+
+Per-emote CSV logs in `./log/`:
+```csv
+timestamp,username
+1737208980,viewer1
+1737213900,viewer2
+1737215520,viewer1
+```
+
+- `YYYY-MM-DD-lurk.csv` - All !lurk usage
+- `YYYY-MM-DD-hype.csv` - All !hype usage
+- `YYYY-MM-DD-coding.csv` - All !coding usage
+- `YYYY-MM-DD-clips.csv` - All !clip requests
+
+Real-time counters for Streaming Software:
+- `current-lurk-count.txt` - Total !lurk count today
+- `current-hype-count.txt` - Total !hype count today
+- `current-coding-count.txt` - Total !coding count today
+- `current-clip-count.txt` - Total !clip requests today
