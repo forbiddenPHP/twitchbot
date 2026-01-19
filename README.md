@@ -205,7 +205,7 @@ Real-time counters for Streaming Software:
 - `current-coding-count.txt` - Total !coding count today
 - `current-clip-count.txt` - Total !clip requests today
 
-### **Requirement: Message Pulling API (Python)**
+### Message Pulling API (Python)**
 
 **Objective:** Implement a Python-based host (`server.py`) that acts as a bridge between the ChatBot and an external comments system.
 
