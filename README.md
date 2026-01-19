@@ -204,3 +204,21 @@ Real-time counters for Streaming Software:
 - `current-hype-count.txt` - Total !hype count today
 - `current-coding-count.txt` - Total !coding count today
 - `current-clip-count.txt` - Total !clip requests today
+
+### **Requirement: Message Pulling API (Python)**
+
+**Objective:** Implement a Python-based host (`server.py`) that acts as a bridge between the ChatBot and an external comments system.
+
+**Functional Workflow:**
+
+1. **Buffering:** The ChatBot continuously appends all new incoming/outgoing messages to a local collective file (e.g., `buffer.json`).
+2. **Endpoint:** The server must expose a GET endpoint at `http://localhost:6969/pull`.
+3. **Data Delivery:** Upon a request to `/pull`, the server reads all currently stored messages and returns them in **JSON format**.
+4. **Buffer Reset:** Immediately after a successful pull, the server must **clear the buffer file** to ensure no duplicate messages are delivered in the next cycle.
+
+**Technical Specifications:**
+
+* **Host:** `server.py`
+* **Default Port:** `6969` (must be configurable via variable).
+* **Output Format:** JSON Array of objects (structure to be finalized).
+* **Concurrency:** Ensure the server can handle file access while the ChatBot is writing.
