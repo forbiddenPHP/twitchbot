@@ -1,20 +1,25 @@
 # Twitch Chatbot (forbiddenPHPbot)
 
-A custom-built Twitch chatbot for logging, polls, and moderation. Built with the modern `twitchAPI` library, featuring automatic token handling.
+A custom-built Twitch chatbot for chat logging, polls, streaming software integration, and unknown command tracking. Built with the `twitchAPI` library (pyTwitchAPI), featuring automatic OAuth token handling and a split-screen terminal UI.
 
 ## How to contribute
 
 ⚠️ This is a personal repository designed to work specifically for my setup. If you have contributions that would improve functionality for me AND could be useful for your own setup, I'm open to contributions. However, I cannot guarantee that all changes will be merged into this codebase.
 
-## 🛠 Features
+## Features
 
-* **Full Logging**: All chat messages are stored in `./log/YYYY-MM-DD-messages.csv`.
-* **Poll System**: Create interactive polls with `!poll start / Question / Option A / Option B`.
-* **Moderation**: Quick commands for VIP, Ban, and Chat modes (Followers/Subs/All).
-* **Topic Tracking**: Set and display the current stream topic.
+* **Full Chat Logging**: All chat messages (viewers, bot, owner) are stored as CSV in `./log/YYYY-MM-DD-messages.csv`.
+* **Poll System**: Create interactive polls with up to 4 options. Live files for streaming software integration.
+* **Topic & Title Management**: Set and display the current stream topic, update the Twitch stream title via API.
+* **Suggestion System**: Viewers can submit suggestions that are logged and available as live files.
+* **Subscriber Tracking**: New subscriber events are logged with tier information.
+* **Unknown Command Tracking**: Any `!command` that is not predefined gets counted in a daily JSON log. Detects commands inline in messages (not just at the beginning).
+* **Streaming Software Push (mimoLive)**: Push all chat comments to `http://localhost:8888/` for live overlay display, with user profile images and favorite status.
+* **Live Files**: Real-time state files in `./live/` for streaming software integration (polls, topic, title, suggestions, subs, unknown commands).
+* **Split-Screen Terminal**: Chat output scrolls in the upper area, owner input is fixed at the bottom with colored prompt.
 * **Auto-Auth**: Log in once via browser; session is saved in `token.json` for future starts.
 
-## 🚀 Setup & Installation
+## Setup & Installation
 
 ### 1. Get Twitch API Keys
 
@@ -27,7 +32,7 @@ A custom-built Twitch chatbot for logging, polls, and moderation. Built with the
 
 ### 2. Configure the Bot
 
-Create a `config.ini` file in the root folder:
+Create a `config.ini` file in the root folder (see `config.demo.ini` for reference):
 
 ```ini
 [TWITCH]
@@ -35,54 +40,87 @@ app_id = YOUR_CLIENT_ID
 app_secret = YOUR_CLIENT_SECRET
 target_channel = YOUR_TWITCH_CHANNEL
 owner_name = YOUR_TWITCH_ACCOUNT_NAME
-
+mimoLiveComments = true|false
+unknownCommandsFeedback = true|false
 ```
+
+| Key | Required | Description |
+| --- | --- | --- |
+| `app_id` | Yes | Your Twitch application Client ID |
+| `app_secret` | Yes | Your Twitch application Client Secret |
+| `target_channel` | Yes | The Twitch channel the bot joins |
+| `owner_name` | Yes | Your Twitch account name (used for permission checks) |
+| `mimoLiveComments` | No | Enable/disable pushing comments to streaming software (`true`/`false`, default: `false`) |
+| `unknownCommandsFeedback` | No | Enable/disable chat feedback when unknown commands are counted (`true`/`false`, default: `true`) |
 
 ### 3. Installation & Launch
 
 1. Install dependencies:
 ```bash
 pip install -r requirements.txt
-
 ```
-
 
 2. Edit `faq.txt` with your desired FAQ response text.
-3. Run the bot:
+3. Edit `commands.txt` with the text shown when a user types `!commands`.
+4. Run the bot:
 ```bash
 python twitchbot.py
-
 ```
 
+5. **Important on first run:** A browser window will open. Log in with your **Twitch Account** and click "Authorize". The `token.json` will be created automatically, and you won't need to log in again.
 
-4. **Important on first run:** A browser window will open. Log in with your **Twitch Account** and click "Authorize". The `token.json` will be created automatically, and you won't need to log in again.
+### CLI Options
 
-## 📜 Supported Commands
+| Flag | Description |
+| --- | --- |
+| `--nocommentpush` | Disable pushing comments to streaming software, regardless of `config.ini` setting |
 
-### Syntax Overview
+```bash
+python twitchbot.py --nocommentpush
+```
+
+**Push behavior logic:**
+- If `--nocommentpush` is set: push is **always disabled** (overrides config)
+- If `--nocommentpush` is NOT set: the `mimoLiveComments` value in `config.ini` decides (`true`/`false`)
+- If `mimoLiveComments` is missing from `config.ini`: defaults to `false` (disabled)
+
+## Supported Commands
+
+### Command Overview
 
 | Command | User | Description |
 | --- | --- | --- |
-| `!commands` | Everyone | Shows link to command documentation |
+| `!commands` | Everyone | Shows the content of `commands.txt` |
 | `!today` | Everyone | Shows the current stream topic |
 | `!setToday <text>` | Owner | Updates the stream topic |
-| `!title <text>` | Owner | Updates the stream title |
-| `!faq` | Everyone | Posts the content of faq.txt |
-| `!suggest <text>` | Everyone | Saves suggestions to suggestions.txt |
-| `!poll start / Q / A / B` | Owner | Starts a new poll |
+| `!title <text>` | Owner | Updates the Twitch stream title (via API) |
+| `!faq` | Everyone | Posts the content of `faq.txt` |
+| `!suggest <text>` | Everyone | Saves a suggestion to the daily log |
+| `!poll start / Q / A / B` | Owner | Starts a new poll (2-4 options) |
 | `!poll status` | Owner | Shows current poll standings |
 | `!poll stop` | Owner | Ends the poll and logs the results |
-| `!a, !b, !c, !d` | Everyone | Vote in an active poll |
+| `!a`, `!b`, `!c`, `!d` | Everyone | Vote in an active poll |
+| `!clip` | Everyone | Marks current timestamp as clip-worthy moment (silent, no chat response) |
+| `!vip <username>` | Owner + Mods | Grants VIP status to a user |
+| `!unvip <username>` | Owner + Mods | Removes VIP status from a user |
+| `!mod <username>` | Owner + Mods | Grants moderator status to a user |
+| `!unmod <username>` | Owner + Mods | Removes moderator status from a user |
+| `!ban <username>` | Owner + Mods | Bans a user from the chat |
+| `!unban <username>` | Owner + Mods | Unbans a user |
+| `!chatmode` | Owner + Mods | Shows current chat mode |
+| `!chatmode <followers\|subs\|all>` | Owner + Mods | Sets chat restriction mode |
+| `!so <username>` | Owner + Mods | Gives a shoutout to another streamer |
+| `!shoutout <username>` | Owner + Mods | Alias for !so |
 
 ### Command Examples
 
 **Stream Management:**
 - `!today` - Displays the current topic
 - `!setToday We're building a new feature today!` - Sets stream topic
-- `!title Building an awesome Twitch bot` - Updates stream title
+- `!title Building an awesome Twitch bot` - Updates the Twitch stream title
 
 **Interactive Features:**
-- `!commands` - Shows link to command list
+- `!commands` - Shows command list text
 - `!faq` - Shows FAQ text
 - `!suggest Add dark mode please` - Saves user suggestion
 
@@ -90,135 +128,112 @@ python twitchbot.py
 - `!poll start / What should we build? / Feature A / Feature B / Feature C` - Start a poll (2-4 options)
 - `!poll status` - Check current vote counts
 - `!poll stop` - End poll and save results
-- `!a` or `!b` or `!c` or `!d` - Cast your vote (you can change your vote anytime)
+- `!a` or `!b` or `!c` or `!d` - Cast your vote
 
 ### Poll System Details
 
-**Live Poll Files (Streaming Software Integration):**
+**Voting Rules:**
+- Each user can vote only once
+- Users can change their vote at any time (previous vote is replaced)
+- Vote counts update in real-time in the live files
 
-While a poll is active, the following files are continuously updated in `./log/`:
+**Poll Results Logging:**
+
+When a poll ends (`!poll stop`), results are appended to `./log/YYYY-MM-DD-polls.txt`.
+
+### Owner Terminal Input
+
+The bot features a split-screen terminal. The owner can type directly in the bottom input line:
+- Regular text is sent as a chat message (without `(Bot)` prefix)
+- `!commands` typed in the terminal execute the command AND send the message to chat
+- Bot responses always get a `(Bot)` prefix in chat
+
+## Unknown Command Tracking
+
+Any `!command` that is not one of the predefined commands gets tracked and counted.
+
+**Detection rules:**
+- Commands must be preceded by a space or be at the start of a message
+- Inline detection: `Wer !hilfe braucht` detects `hilfe`
+- No special characters: `!schoen!` detects `schoen`, `!test,` detects `test`
+- Multilingual support (Unicode): works with all languages
+- `test!inline` does NOT match (no space before `!`)
+- Multiple commands per message are all counted
+
+**Predefined commands (NOT counted):** `today`, `settoday`, `faq`, `commands`, `suggest`, `poll`, `title`, `a`, `b`, `c`, `d`, `clip`, `vip`, `unvip`, `mod`, `unmod`, `ban`, `unban`, `chatmode`, `so`, `shoutout`
+
+**Chat Feedback:** When an unknown command is counted, the bot responds with e.g. `!hype was counted, total: 5`. This can be disabled via `unknownCommandsFeedback = false` in `config.ini`.
+
+**Log file:** `./log/YYYY-MM-DD-unknown_commands.json`
+```json
+{
+  "hilfe": 5,
+  "helpme": 2,
+  "dance": 12
+}
+```
+
+## Streaming Software Integration (mimoLive)
+
+The comment push feature requires the [mimoLive-automation](https://github.com/forbiddenPHP/mimoLive-automation) package to be running on `localhost:8888`.
+
+### Comment Push
+
+When enabled, every chat message (from viewers, bot, and owner) is pushed to `http://localhost:8888/` via HTTP GET with the following parameters:
+
+| Parameter | Description |
+| --- | --- |
+| `f` | Always `functions/new-comment` |
+| `username` | The sender's Twitch username |
+| `message` | The message text |
+| `userimageurl` | Twitch profile image URL (daily cached) |
+| `plattform` | Always `twitch` |
+| `favorite` | `true` for mods, subscribers, and the owner; `false` otherwise |
+
+Profile images are fetched via the Twitch API and cached for the current day.
+
+### Live Files (`./live/`)
+
+The following files are continuously updated in `./live/` and can be read by streaming software (e.g., as text sources in OBS or mimoLive):
+
+**Poll (updated while a poll is active, cleared when poll ends):**
 - `current-poll-question.txt` - The poll question
 - `current-poll-a.txt`, `current-poll-b.txt`, `current-poll-c.txt`, `current-poll-d.txt` - Option texts (empty if not used)
 - `current-poll-a-amount.txt`, `current-poll-b-amount.txt`, etc. - Current vote counts (empty if option not used)
-- `current-poll-votes.json` - Vote tracking metadata
 
-These files remain persistent after a poll ends (showing last results) and are only overwritten when a new poll starts.
-
-**Voting Rules:**
-- Each user can vote only once
-- Users can change their vote at any time (but cannot vote for multiple options)
-- Vote changes are tracked in real-time
-
-**Poll Archiving:**
-
-When a poll ends, all files are archived with timestamps:
-- `YYYY-MM-DD-HH-MM-poll-question.txt`
-- `YYYY-MM-DD-HH-MM-poll-a.txt`, etc.
-
-This allows you to review historical poll results.
-
-### File Logging
-
-All logs are automatically saved with date prefixes in the `./log/` directory:
-- `YYYY-MM-DD-messages.csv` - All chat messages
-- `YYYY-MM-DD-polls.txt` - Poll results summary
-- `YYYY-MM-DD-new-subs.txt` - New subscriber notifications
-- `YYYY-MM-DD-HH-MM-poll-*.txt` - Archived poll data (timestamped)
-
-## 📂 Security
-
-The files `config.ini` and `token.json` contain sensitive credentials and **must never** be uploaded to GitHub (they are already included in the `.gitignore`).
-
-## 🚧 TODOs
-
-The following commands are planned but not yet implemented:
-
-### Moderation Commands
-
-| Command | User | Description |
-| --- | --- | --- |
-| `!vip <username>` | Owner | Grants VIP status to a user |
-| `!unvip <username>` | Owner | Removes VIP status from a user |
-| `!mod <username>` | Owner | Grants moderator status to a user |
-| `!unmod <username>` | Owner | Removes moderator status from a user |
-| `!ban <username>` | Owner + Mods | Bans a user from the chat |
-| `!unban <username>` | Owner + Mods | Unbans a user |
-| `!chatmode` | Owner | Shows current chat mode (default: followers) |
-| `!chatmode <followers\|subs\|all>` | Owner | Sets chat restriction mode |
-
-### Shoutout System
-
-| Command | User | Description |
-| --- | --- | --- |
-| `!so <username>` | Owner + Mods | Gives a shoutout to another streamer |
-| `!shoutout <username>` | Owner + Mods | Alias for !so |
-
-**Shoutout Files (Streaming Software Integration):**
-
-Shoutouts are logged to `./log/YYYY-MM-DD-shoutouts.csv` with the following format:
-```csv
-timestamp,username,shown
-1737208980,somestreamer,0
-1737213900,anotherstreamer,0
-```
-
-The `shown` field starts at `0` and can be set to `1` by streaming software to track which shoutouts have been displayed on stream.
-
-Additional files for Streaming Software integration:
+**General:**
+- `current-topic.txt` - Current stream topic (updated on `!setToday`)
+- `current-title.txt` - Current stream title (updated on `!title`)
+- `current-suggestion.txt` - Latest suggestion (updated on each `!suggest`)
+- `current-sub.txt` - Latest subscriber info (updated on each new sub event)
+- `current-unknown-commands.txt` - All unknown commands with counts, tab-separated, sorted by count descending
+- `current-clip-count.txt` - Total number of `!clip` markers today
 - `current-shoutout.txt` - Username of the most recent shoutout
 - `current-shoutout-count.txt` - Total number of shoutouts today
 
-### Emote Tracking System
-
-Tracks custom emote usage anywhere in messages (not just at the beginning). These work alongside Twitch custom emotes to provide analytics and interaction tracking.
-
-**Tracked Emotes:**
-- `!lurk` - User is lurking
-- `!hype` - Hype moments
-- `!coding` - Coding activity
-- `!clip` - Clip-worthy moment marker
-
-**Behavior:**
-- Emotes are detected anywhere in any message (beginning, middle, end)
-- Multiple emotes in one message are all counted
-- No bot responses (silent tracking only)
-- Works in parallel with regular commands (e.g., `!suggest I love !hype moments` counts the !hype AND saves the suggestion)
-
-**Files (Streaming Software Integration):**
-
-Per-emote CSV logs in `./log/`:
-```csv
-timestamp,username
-1737208980,viewer1
-1737213900,viewer2
-1737215520,viewer1
+**Unknown commands format:**
+```
+dance	12
+hilfe	5
+helpme	2
 ```
 
-- `YYYY-MM-DD-lurk.csv` - All !lurk usage
-- `YYYY-MM-DD-hype.csv` - All !hype usage
-- `YYYY-MM-DD-coding.csv` - All !coding usage
-- `YYYY-MM-DD-clips.csv` - All !clip requests
+## Log Files (`./log/`)
 
-Real-time counters for Streaming Software:
-- `current-lurk-count.txt` - Total !lurk count today
-- `current-hype-count.txt` - Total !hype count today
-- `current-coding-count.txt` - Total !coding count today
-- `current-clip-count.txt` - Total !clip requests today
+All logs are automatically saved with date prefixes:
 
-### Message Pulling API (Python)**
+| File | Format | Description |
+| --- | --- | --- |
+| `YYYY-MM-DD-messages.csv` | CSV | All chat messages (timestamp, username, color, message) |
+| `YYYY-MM-DD-polls.txt` | Text | Poll results summary (appended on `!poll stop`) |
+| `YYYY-MM-DD-new-subs.txt` | Text | New subscriber notifications with tier |
+| `YYYY-MM-DD-suggestions.txt` | Text | All suggestions (username + text) |
+| `YYYY-MM-DD-unknown_commands.json` | JSON | Unknown command counts `{"command": count}` |
+| `YYYY-MM-DD-clip.txt` | Text | Clip-worthy timestamps (`HH:MM:SS username`) |
+| `YYYY-MM-DD-shoutouts.csv` | CSV | Shoutout log (`timestamp,username`) |
 
-**Objective:** Implement a Python-based host (`server.py`) that acts as a bridge between the ChatBot and an external comments system.
+## Security
 
-**Functional Workflow:**
+The files `config.ini` and `token.json` contain sensitive credentials and **must never** be uploaded to GitHub (they are already included in the `.gitignore`).
 
-1. **Buffering:** The ChatBot continuously appends all new incoming/outgoing messages to a local collective file (e.g., `buffer.json`).
-2. **Endpoint:** The server must expose a GET endpoint at `http://localhost:6969/pull`.
-3. **Data Delivery:** Upon a request to `/pull`, the server reads all currently stored messages and returns them in **JSON format**.
-4. **Buffer Reset:** Immediately after a successful pull, the server must **clear the buffer file** to ensure no duplicate messages are delivered in the next cycle.
 
-**Technical Specifications:**
-
-* **Host:** `server.py`
-* **Default Port:** `6969` (must be configurable via variable).
-* **Output Format:** JSON Array of objects (structure to be finalized).
-* **Concurrency:** Ensure the server can handle file access while the ChatBot is writing.

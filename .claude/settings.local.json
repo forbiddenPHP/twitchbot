@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "WebFetch(domain:pytwitchapi.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(pip3 show:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(pip show:*)"
+    ]
+  }
+}
