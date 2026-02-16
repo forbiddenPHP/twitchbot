@@ -204,6 +204,7 @@ In addition to comments, the following events are pushed to mimoLive (same base 
 
 | Event | `f` parameter | Additional parameters |
 | --- | --- | --- |
+| Comment | `functions/new-comment` | `username`, `message`, `userimageurl`, `plattform`, `favorite` |
 | New Sub | `functions/new-sub` | `username`, `tier` |
 | Gift Sub | `functions/gift-sub` | `username` (gifter), `count`, `tier` |
 | Raid | `functions/raid-alert` | `username` (raider), `viewers`, `userimageurl` |
