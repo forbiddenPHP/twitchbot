@@ -12,7 +12,11 @@ A custom-built Twitch chatbot for chat logging, polls, streaming software integr
 * **Poll System**: Create interactive polls with up to 4 options. Live files for streaming software integration.
 * **Topic & Title Management**: Set and display the current stream topic, update the Twitch stream title via API.
 * **Suggestion System**: Viewers can submit suggestions that are logged and available as live files.
-* **Subscriber Tracking**: New subscriber events are logged with tier information.
+* **Subscriber Tracking**: New subscriber events are logged with tier information. Chat welcome message and mimoLive push.
+* **Gift Sub Tracking**: Gift subs are buffered per gifter (configurable timeout) and announced as a single message with the total count.
+* **Bits/Cheers Tracking**: Bits are buffered per user (same timeout) and announced as a single message with the total amount.
+* **Hype Chat Tracking**: Hype Chat events are logged with amount, currency, and level.
+* **Raid Detection**: Raid events trigger a thank-you message, mimoLive push (with raider's profile image), and logging.
 * **Unknown Command Tracking**: Any `!command` that is not predefined gets counted in a daily JSON log. Detects commands inline in messages (not just at the beginning).
 * **Streaming Software Push (mimoLive)**: Push all chat comments to `http://localhost:8888/` for live overlay display, with user profile images and favorite status.
 * **Live Files**: Real-time state files in `./live/` for streaming software integration (polls, topic, title, suggestions, subs, unknown commands).
@@ -42,6 +46,7 @@ target_channel = YOUR_TWITCH_CHANNEL
 owner_name = YOUR_TWITCH_ACCOUNT_NAME
 mimoLiveComments = true|false
 unknownCommandsFeedback = true|false
+giftBufferTimeout = 5
 ```
 
 | Key | Required | Description |
@@ -52,6 +57,7 @@ unknownCommandsFeedback = true|false
 | `owner_name` | Yes | Your Twitch account name (used for permission checks) |
 | `mimoLiveComments` | No | Enable/disable pushing comments to streaming software (`true`/`false`, default: `false`) |
 | `unknownCommandsFeedback` | No | Enable/disable chat feedback when unknown commands are counted (`true`/`false`, default: `true`) |
+| `giftBufferTimeout` | No | Seconds to wait before announcing buffered gift subs/bits (default: `5`) |
 
 ### 3. Installation & Launch
 
@@ -192,6 +198,18 @@ When enabled, every chat message (from viewers, bot, and owner) is pushed to `ht
 
 Profile images are fetched via the Twitch API and cached for the current day.
 
+### Event Pushes
+
+In addition to comments, the following events are pushed to mimoLive (same base URL):
+
+| Event | `f` parameter | Additional parameters |
+| --- | --- | --- |
+| New Sub | `functions/new-sub` | `username`, `tier` |
+| Gift Sub | `functions/gift-sub` | `username` (gifter), `count`, `tier` |
+| Raid | `functions/raid-alert` | `username` (raider), `viewers`, `userimageurl` |
+| Bits/Cheers | `functions/cheer-alert` | `username`, `bits` |
+| Hype Chat | `functions/hype-chat` | `username`, `amount`, `currency`, `level` |
+
 ### Live Files (`./live/`)
 
 The following files are continuously updated in `./live/` and can be read by streaming software (e.g., as text sources in OBS or mimoLive):
@@ -210,6 +228,12 @@ The following files are continuously updated in `./live/` and can be read by str
 - `current-clip-count.txt` - Total number of `!clip` markers today
 - `current-shoutout.txt` - Username of the most recent shoutout
 - `current-shoutout-count.txt` - Total number of shoutouts today
+- `current-raid.txt` - Latest raid info (`raider: X viewers`)
+- `current-giftsub.txt` - Latest gift sub info (`gifter: Nx Tier`)
+- `current-giftsub-total.txt` - Total gift subs today
+- `current-cheer.txt` - Latest cheer info (`user: X bits`)
+- `current-cheer-total.txt` - Total bits today
+- `current-hypechat.txt` - Latest Hype Chat info (`user: amount currency (Level)`)
 
 **Unknown commands format:**
 ```
@@ -231,6 +255,10 @@ All logs are automatically saved with date prefixes:
 | `YYYY-MM-DD-unknown_commands.json` | JSON | Unknown command counts `{"command": count}` |
 | `YYYY-MM-DD-clip.txt` | Text | Clip-worthy timestamps (`HH:MM:SS username`) |
 | `YYYY-MM-DD-shoutouts.csv` | CSV | Shoutout log (`timestamp,username`) |
+| `YYYY-MM-DD-raids.csv` | CSV | Raid log (`timestamp,raider,viewer_count`) |
+| `YYYY-MM-DD-giftsubs.csv` | CSV | Gift sub log (`timestamp,gifter,count,tier`) |
+| `YYYY-MM-DD-cheers.csv` | CSV | Bits/cheers log (`timestamp,username,bits`) |
+| `YYYY-MM-DD-hypechat.csv` | CSV | Hype Chat log (`timestamp,username,amount,currency,level`) |
 
 ## Security
 

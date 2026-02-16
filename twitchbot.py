@@ -46,6 +46,7 @@ TARGET_CHANNEL = config['TWITCH']['target_channel']
 OWNER_NAME = config['TWITCH']['owner_name'].lower()
 MIMO_LIVE_COMMENTS = config['TWITCH'].getboolean('mimoLiveComments', fallback=False)
 UNKNOWN_COMMANDS_FEEDBACK = config['TWITCH'].getboolean('unknownCommandsFeedback', fallback=True)
+GIFT_BUFFER_TIMEOUT = config['TWITCH'].getint('giftBufferTimeout', fallback=5)
 
 USER_SCOPE = [
     AuthScope.CHAT_READ,
@@ -73,6 +74,10 @@ args = parser.parse_args()
 
 chat_instance = None
 twitch_instance = None
+
+# --- EVENT BUFFERS (Gift Subs, Bits) ---
+gift_sub_buffers = {}  # {gifter_name: {'count': int, 'tier': str, 'recipients': [], 'timer': asyncio.TimerHandle}}
+bits_buffers = {}      # {user_name: {'total': int, 'timer': asyncio.TimerHandle}}
 
 # --- USER IMAGE CACHE (resets daily) ---
 user_image_cache = {}
@@ -119,6 +124,106 @@ async def push_comment(username, message, userimageurl='', favorite=False):
                 pass
     except Exception as e:
         chat_print(f"{Color.GREY}PUSH ERROR: {e}{Color.RESET}")
+
+async def push_event(function_name, **params):
+    """Pusht ein Event an die Streaming-Software (mimoLive)."""
+    if args.nocommentpush or not MIMO_LIVE_COMMENTS:
+        return
+    event_params = {'f': function_name}
+    event_params.update(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(PUSH_URL, params=event_params, timeout=aiohttp.ClientTimeout(total=5)):
+                pass
+    except Exception as e:
+        chat_print(f"{Color.GREY}PUSH ERROR: {e}{Color.RESET}")
+
+async def flush_gift_sub_buffer(gifter):
+    """Wird aufgerufen wenn der Gift-Sub-Puffer für einen User abläuft."""
+    data = gift_sub_buffers.pop(gifter, None)
+    if not data:
+        return
+    count = data['count']
+    tier = data['tier']
+    chat_print(f"{Color.YELLOW}GIFT SUBS! {gifter} gifted {count}x {tier}{Color.RESET}")
+    log_write("giftsubs.csv", f"{int(datetime.now().timestamp())},{gifter},{count},{tier}")
+    write_live_file('current-giftsub.txt', f"{gifter}: {count}x {tier}")
+    # Count today's gift subs
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    giftsub_path = os.path.join(LOG_DIR, f"{date_str}-giftsubs.csv")
+    total = 0
+    if os.path.exists(giftsub_path):
+        with open(giftsub_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                parts = line.strip().split(',')
+                if len(parts) >= 3:
+                    try:
+                        total += int(parts[2])
+                    except ValueError:
+                        pass
+    write_live_file('current-giftsub-total.txt', str(total))
+    try:
+        await send_and_log(TARGET_CHANNEL, f"Thanks for gifting {count} sub{'s' if count > 1 else ''}, @{gifter}!")
+    except Exception:
+        pass
+    await push_event('functions/gift-sub', username=gifter, count=str(count), tier=tier)
+
+async def flush_bits_buffer(username):
+    """Wird aufgerufen wenn der Bits-Puffer für einen User abläuft."""
+    data = bits_buffers.pop(username, None)
+    if not data:
+        return
+    total = data['total']
+    chat_print(f"{Color.YELLOW}BITS! {username} cheered {total} bits{Color.RESET}")
+    log_write("cheers.csv", f"{int(datetime.now().timestamp())},{username},{total}")
+    write_live_file('current-cheer.txt', f"{username}: {total} bits")
+    # Count today's total bits
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    cheer_path = os.path.join(LOG_DIR, f"{date_str}-cheers.csv")
+    day_total = 0
+    if os.path.exists(cheer_path):
+        with open(cheer_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                parts = line.strip().split(',')
+                if len(parts) >= 3:
+                    try:
+                        day_total += int(parts[2])
+                    except ValueError:
+                        pass
+    write_live_file('current-cheer-total.txt', str(day_total))
+    try:
+        await send_and_log(TARGET_CHANNEL, f"Thanks for the {total} bits, @{username}!")
+    except Exception:
+        pass
+    await push_event('functions/cheer-alert', username=username, bits=str(total))
+
+def buffer_gift_sub(gifter, tier):
+    """Puffert einen Gift Sub. Timer wird bei jedem neuen Gift zurückgesetzt."""
+    loop = asyncio.get_event_loop()
+    if gifter in gift_sub_buffers:
+        # Timer zurücksetzen
+        gift_sub_buffers[gifter]['timer'].cancel()
+        gift_sub_buffers[gifter]['count'] += 1
+        gift_sub_buffers[gifter]['tier'] = tier
+    else:
+        gift_sub_buffers[gifter] = {'count': 1, 'tier': tier, 'recipients': []}
+    gift_sub_buffers[gifter]['timer'] = loop.call_later(
+        GIFT_BUFFER_TIMEOUT,
+        lambda g=gifter: asyncio.ensure_future(flush_gift_sub_buffer(g))
+    )
+
+def buffer_bits(username, bits):
+    """Puffert Bits. Timer wird bei jedem neuen Cheer zurückgesetzt."""
+    loop = asyncio.get_event_loop()
+    if username in bits_buffers:
+        bits_buffers[username]['timer'].cancel()
+        bits_buffers[username]['total'] += bits
+    else:
+        bits_buffers[username] = {'total': bits}
+    bits_buffers[username]['timer'] = loop.call_later(
+        GIFT_BUFFER_TIMEOUT,
+        lambda u=username: asyncio.ensure_future(flush_bits_buffer(u))
+    )
 
 KNOWN_COMMANDS = {'today', 'settoday', 'faq', 'commands', 'suggest', 'poll', 'title', 'a', 'b', 'c', 'd', 'clip', 'vip', 'unvip', 'mod', 'unmod', 'ban', 'unban', 'chatmode', 'so', 'shoutout'}
 
@@ -651,6 +756,12 @@ async def on_ready(ready_event: EventData):
         'current-clip-count.txt',
         'current-shoutout.txt',
         'current-shoutout-count.txt',
+        'current-raid.txt',
+        'current-giftsub.txt',
+        'current-giftsub-total.txt',
+        'current-cheer.txt',
+        'current-cheer-total.txt',
+        'current-hypechat.txt',
     ]
     for lf in live_files:
         write_live_file(lf, '')
@@ -684,6 +795,25 @@ async def on_message(msg: ChatMessage):
                 cmd, count = result
                 await send_and_log(msg.room, f"!{cmd} was counted, total: {count}")
 
+    # Bits/Cheers detection
+    if msg.bits > 0:
+        buffer_bits(msg.user.name, msg.bits)
+
+    # Hype Chat detection
+    if msg.hype_chat is not None:
+        hc = msg.hype_chat
+        # Amount is in smallest unit, exponent tells decimal places
+        amount = hc.amount / (10 ** hc.exponent) if hc.exponent > 0 else hc.amount
+        level = hc.level
+        chat_print(f"{Color.YELLOW}HYPE CHAT! {msg.user.name}: {amount} {hc.currency} (Level {level}){Color.RESET}")
+        log_write("hypechat.csv", f"{int(datetime.now().timestamp())},{msg.user.name},{amount},{hc.currency},{level}")
+        write_live_file('current-hypechat.txt', f"{msg.user.name}: {amount} {hc.currency} (Level {level})")
+        try:
+            await send_and_log(msg.room, f"Thanks for the Hype Chat, @{msg.user.name}!")
+        except Exception:
+            pass
+        await push_event('functions/hype-chat', username=msg.user.name, amount=str(amount), currency=hc.currency, level=level)
+
     # Push to streaming software
     user_image = await get_user_image(msg.user.name)
     is_favorite = msg.user.mod or msg.user.subscriber or msg.user.name.lower() == OWNER_NAME
@@ -691,13 +821,39 @@ async def on_message(msg: ChatMessage):
 
 async def on_sub(sub: ChatSub):
     tier = "Tier 1"
-    if sub.data.sub_plan == '2000': tier = "Tier 2"
-    elif sub.data.sub_plan == '3000': tier = "Tier 3"
-    elif sub.data.sub_plan == 'Prime': tier = "Prime"
-    
-    chat_print(f"{Color.YELLOW}NEW SUB! {sub.data.user_name} ({tier}){Color.RESET}")
-    log_write("new-subs.txt", f"User: {sub.data.user_name} | {tier}")
-    write_live_file('current-sub.txt', f"{sub.data.user_name} | {tier}")
+    if sub.sub_plan == '2000': tier = "Tier 2"
+    elif sub.sub_plan == '3000': tier = "Tier 3"
+    elif sub.sub_plan == 'Prime': tier = "Prime"
+    user_name = sub._parsed['tags'].get('display-name') or sub._parsed['tags'].get('login', 'Unknown')
+
+    if sub.sub_type == 'subgift':
+        # Gift Sub — in Puffer sammeln
+        gifter = user_name
+        buffer_gift_sub(gifter, tier)
+    else:
+        # Normaler Sub oder Resub
+        chat_print(f"{Color.YELLOW}NEW SUB! {user_name} ({tier}){Color.RESET}")
+        log_write("new-subs.txt", f"User: {user_name} | {tier}")
+        write_live_file('current-sub.txt', f"{user_name} | {tier}")
+        try:
+            await send_and_log(TARGET_CHANNEL, f"Welcome, @{user_name}! Thanks for the {tier} sub!")
+        except Exception:
+            pass
+        await push_event('functions/new-sub', username=user_name, tier=tier)
+
+async def on_raid(raid_data: dict):
+    tags = raid_data.get('tags', {})
+    raider = tags.get('display-name') or tags.get('login', 'Unknown')
+    viewer_count = tags.get('msg-param-viewerCount', '0')
+    chat_print(f"{Color.YELLOW}RAID! {raider} with {viewer_count} viewers!{Color.RESET}")
+    log_write("raids.csv", f"{int(datetime.now().timestamp())},{raider},{viewer_count}")
+    write_live_file('current-raid.txt', f"{raider}: {viewer_count} viewers")
+    try:
+        await send_and_log(TARGET_CHANNEL, f"Thanks for the raid, @{raider} ❤️")
+    except Exception:
+        pass
+    raider_image = await get_user_image(raider.lower())
+    await push_event('functions/raid-alert', username=raider, viewers=viewer_count, userimageurl=raider_image)
 
 # --- INPUT HANDLER ---
 
@@ -850,6 +1006,7 @@ async def main():
         chat_instance.register_event(ChatEvent.READY, on_ready)
         chat_instance.register_event(ChatEvent.MESSAGE, on_message)
         chat_instance.register_event(ChatEvent.SUB, on_sub)
+        chat_instance.register_event(ChatEvent.RAID, on_raid)
 
         # Commands registrieren
         chat_instance.register_command('today', cmd_today)
