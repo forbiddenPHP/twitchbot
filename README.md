@@ -102,7 +102,7 @@ python twitchbot.py --nocommentpush
 
 ## Supported Commands
 
-<details>
+<details open>
 <summary>Show command overview</summary>
 
 ### Command Overview
