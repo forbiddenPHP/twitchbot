@@ -30,5 +30,8 @@ build/
 dist/
 *.egg-info/
 
+# Claude Code
+.claude/
+
 # Local Data / Logs
 log/

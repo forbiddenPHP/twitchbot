@@ -126,10 +126,10 @@ async def push_comment(username, message, userimageurl='', favorite=False):
         chat_print(f"{Color.GREY}PUSH ERROR: {e}{Color.RESET}")
 
 async def push_event(function_name, **params):
-    """Pusht ein Event an die Streaming-Software (mimoLive)."""
+    """Pusht ein Event an die Streaming-Software (mimoLive). Events werden gestackt (toStack)."""
     if args.nocommentpush or not MIMO_LIVE_COMMENTS:
         return
-    event_params = {'f': function_name}
+    event_params = {'f': function_name, 'toStack': ''}
     event_params.update(params)
     try:
         async with aiohttp.ClientSession() as session:

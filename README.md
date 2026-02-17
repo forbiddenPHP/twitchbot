@@ -8,6 +8,9 @@ A custom-built Twitch chatbot for chat logging, polls, streaming software integr
 
 ## Features
 
+<details>
+<summary>Show all features</summary>
+
 * **Full Chat Logging**: All chat messages (viewers, bot, owner) are stored as CSV in `./log/YYYY-MM-DD-messages.csv`.
 * **Poll System**: Create interactive polls with up to 4 options. Live files for streaming software integration.
 * **Topic & Title Management**: Set and display the current stream topic, update the Twitch stream title via API.
@@ -23,7 +26,12 @@ A custom-built Twitch chatbot for chat logging, polls, streaming software integr
 * **Split-Screen Terminal**: Chat output scrolls in the upper area, owner input is fixed at the bottom with colored prompt.
 * **Auto-Auth**: Log in once via browser; session is saved in `token.json` for future starts.
 
+</details>
+
 ## Setup & Installation
+
+<details>
+<summary>Show setup instructions</summary>
 
 ### 1. Get Twitch API Keys
 
@@ -90,7 +98,12 @@ python twitchbot.py --nocommentpush
 - If `--nocommentpush` is NOT set: the `mimoLiveComments` value in `config.ini` decides (`true`/`false`)
 - If `mimoLiveComments` is missing from `config.ini`: defaults to `false` (disabled)
 
+</details>
+
 ## Supported Commands
+
+<details>
+<summary>Show command overview</summary>
 
 ### Command Overview
 
@@ -154,7 +167,12 @@ The bot features a split-screen terminal. The owner can type directly in the bot
 - `!commands` typed in the terminal execute the command AND send the message to chat
 - Bot responses always get a `(Bot)` prefix in chat
 
+</details>
+
 ## Unknown Command Tracking
+
+<details>
+<summary>Show tracking details</summary>
 
 Any `!command` that is not one of the predefined commands gets tracked and counted.
 
@@ -179,9 +197,14 @@ Any `!command` that is not one of the predefined commands gets tracked and count
 }
 ```
 
+</details>
+
 ## Streaming Software Integration (mimoLive)
 
 The comment push feature requires the [mimoLive-automation](https://github.com/forbiddenPHP/mimoLive-automation) package to be running on `localhost:8888`.
+
+<details>
+<summary>Show integration details</summary>
 
 ### Comment Push
 
@@ -200,16 +223,16 @@ Profile images are fetched via the Twitch API and cached for the current day.
 
 ### Event Pushes
 
-In addition to comments, the following events are pushed to mimoLive (same base URL):
+In addition to comments, the following events are pushed to mimoLive (same base URL). All event pushes (except comments) include `toStack` to ensure they are executed sequentially, not simultaneously.
 
-| Event | `f` parameter | Additional parameters |
-| --- | --- | --- |
-| Comment | `functions/new-comment` | `username`, `message`, `userimageurl`, `plattform`, `favorite` |
-| New Sub | `functions/new-sub` | `username`, `tier` |
-| Gift Sub | `functions/gift-sub` | `username` (gifter), `count`, `tier` |
-| Raid | `functions/raid-alert` | `username` (raider), `viewers`, `userimageurl` |
-| Bits/Cheers | `functions/cheer-alert` | `username`, `bits` |
-| Hype Chat | `functions/hype-chat` | `username`, `amount`, `currency`, `level` |
+| Event | `f` parameter | Additional parameters | Stacked |
+| --- | --- | --- | --- |
+| Comment | `functions/new-comment` | `username`, `message`, `userimageurl`, `plattform`, `favorite` | No |
+| New Sub | `functions/new-sub` | `username`, `tier` | Yes |
+| Gift Sub | `functions/gift-sub` | `username` (gifter), `count`, `tier` | Yes |
+| Raid | `functions/raid-alert` | `username` (raider), `viewers`, `userimageurl` | Yes |
+| Bits/Cheers | `functions/cheer-alert` | `username`, `bits` | Yes |
+| Hype Chat | `functions/hype-chat` | `username`, `amount`, `currency`, `level` | Yes |
 
 ### Live Files (`./live/`)
 
@@ -243,7 +266,12 @@ hilfe	5
 helpme	2
 ```
 
+</details>
+
 ## Log Files (`./log/`)
+
+<details>
+<summary>Show log file details</summary>
 
 All logs are automatically saved with date prefixes:
 
@@ -261,8 +289,8 @@ All logs are automatically saved with date prefixes:
 | `YYYY-MM-DD-cheers.csv` | CSV | Bits/cheers log (`timestamp,username,bits`) |
 | `YYYY-MM-DD-hypechat.csv` | CSV | Hype Chat log (`timestamp,username,amount,currency,level`) |
 
+</details>
+
 ## Security
 
 The files `config.ini` and `token.json` contain sensitive credentials and **must never** be uploaded to GitHub (they are already included in the `.gitignore`).
-
-
